@@ -2,11 +2,6 @@ module backend.data.activitypub;
 import backend.data.activitystreams;
 import backend.data.ld;
 import asdf;
-import std.variant;
-
-// TODO: make languages an enum?
-
-
 
 struct ActivityStatus {
 
@@ -31,9 +26,9 @@ struct ActivitySource {
 
 }
 
-
 struct ActivityActor {
 
+    // This struct is an ActivityObject, and when referenced use id.
     mixin ActivityObject;
 
     /// following

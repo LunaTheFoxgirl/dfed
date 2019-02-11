@@ -2,7 +2,7 @@ module backend.data.ld;
 import asdf;
 import std.traits;
 
-/// Specify that an LDRootObject (@type) should be ignored.
+/// Specify that an LD type/instance/member should be ignored or use stripped down functionality.
 struct Ignored;
 
 enum IsLDObject(T) = (
