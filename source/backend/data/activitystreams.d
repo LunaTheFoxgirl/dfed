@@ -221,6 +221,7 @@ mixin template ActivityObject(string acceptedObjectType = "Object", string itemN
     enum ValidType = acceptedObjectType;
 
     /// Get wether this object is a valid instance.
+    @serializationIgnore
     bool isValidObject() {
         if (type == ValidType) {
             return true;
