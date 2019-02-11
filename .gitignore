@@ -14,4 +14,5 @@ dfed-test-*
 *.obj
 *.lst
 access.log
+dub.selections.json
 
