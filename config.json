@@ -1,0 +1,16 @@
+{
+    "backend": {
+        "port": 8080,
+        "bindings": ["::", "127.0.0.1"],
+        "hostname": "localhost",
+        "cookie_id": "instance_name_session",
+        "server_name": "instance_name",
+        "log_dir": "."
+    },
+    "settings": {
+        "compat_mastodon": false,
+        "allow_registrations": false,
+        "two_factor": false,
+        "federation": true
+    }
+}

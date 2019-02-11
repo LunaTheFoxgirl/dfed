@@ -1,0 +1,17 @@
+.dub
+docs.json
+__dummy.html
+docs/
+/dfed
+dfed.so
+dfed.dylib
+dfed.dll
+dfed.a
+dfed.lib
+dfed-test-*
+*.exe
+*.o
+*.obj
+*.lst
+access.log
+

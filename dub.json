@@ -1,0 +1,17 @@
+{
+	"authors": [
+		"Clipsey"
+	],
+	"copyright": "Copyright © 2019, Clipsey",
+	"dependencies": {
+		"asdf": "~>0.4.4",
+		"vibe-d": "~>0.8.5-alpha.3",
+		"vibe-d:tls": "~>0.8.5-alpha.3"
+	},
+	"subConfigurations": {
+		"vibe-d:tls": "openssl-1.1"
+	},
+	"description": "A small fediverse server written in D with vibe.d",
+	"license": "AGPL-3.0",
+	"name": "dfed"
+}
