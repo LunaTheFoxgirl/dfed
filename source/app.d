@@ -21,7 +21,7 @@ void main()
 
 
     listenHTTP(httpSettings, router);
-    logInfo("DChirp started...");
+    logInfo("DFed started...");
 
 	runApplication();
 }
