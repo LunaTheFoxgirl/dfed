@@ -6,7 +6,7 @@
 	"dependencies": {
 		"asdf": "~>0.4.4",
 		"vibe-d": "~>0.8.4",
-		"vibe-d:tls": "~>0.8.5-alpha.2"
+		"vibe-d:tls": "~>0.8.4"
 	},
 	"subConfigurations": {
 		"vibe-d:tls": "openssl-1.1"
