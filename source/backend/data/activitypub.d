@@ -59,7 +59,7 @@ public:
 
 struct ActivityStatus {
 
-    mixin LDRootObject!(string, Ignored);
+    mixin LDObject;
 
     /// type
     @serializationRequired
@@ -115,7 +115,7 @@ struct ActivityActor {
     string followers;
 
     /// liked
-    @serializationRequire
+    @serializationRequired
     @serializationKeys("liked")
     string liked;
 

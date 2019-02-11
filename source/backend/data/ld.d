@@ -15,7 +15,7 @@ T deserializeLDFrom(T)(string ldjson) if (IsLDRootObject!T || IsLDObject!T) {
 }
 
 mixin template LDObject(ctxType = string) {
-    static if (!is(typeType : Ignored)) {
+    static if (!is(ctxType : Ignored)) {
         /// Context Type
         @serializationRequired
         @serializationKeys("@context")
@@ -43,7 +43,10 @@ public:
 // root object
 private struct ldActionObject {
 public:
-    mixin LDRootObject;
+    mixin LDObject;
+
+    @serializationKeys("@type")
+    string type;
 
     @serializationKeys("agent")
     ldAction agent;
