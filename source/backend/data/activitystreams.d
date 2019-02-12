@@ -213,10 +213,7 @@ public:
 /// TODO: implement the ordered collection implementation (inside ActivityCollection)
 alias ActivityOrderedCollection(T, CType = Ignored) = ActivityCollection!(T, Ignored, true);
 
-/// An basic ActivityStreams object.
 mixin template ActivityObject(string acceptedObjectType = "Object", string itemName = "id") {
-    mixin LDObject!Ignored;
-
     /// The valid type for this activity streams object.
     enum ValidType = acceptedObjectType;
 
@@ -239,6 +236,16 @@ mixin template ActivityObject(string acceptedObjectType = "Object", string itemN
         return mixin(q{%s}.format(itemName));
     }
 
+
+    // Subtype the struct to the activity object.
+    @serializationFlexible
+    ActivityObjectImpl object;
+    alias object this;
+}
+
+/// An basic ActivityStreams object.
+struct ActivityObjectImpl {
+    mixin LDObject!Ignored;
     /// Special context object.
     @serializationRequired
     @serializationKeys("@context")
@@ -256,6 +263,54 @@ mixin template ActivityObject(string acceptedObjectType = "Object", string itemN
     /// name
     @serializationKeys("name")
     string name;
+
+    /// name map
+    @serializationKeys("nameMap")
+    string[string] nameMap;
+
+    /// content
+    @serializationKeys("content")
+    string content;
+    
+    /// content map
+    @serializationKeys("contentMap")
+    string[string] contentMap;
+
+    @serializationKeys("audience")
+    ActivityObjectImpl audience;
+
+    @serializationKeys("context")
+    ActivityObjectImpl context;
+
+    @serializationKeys("attachment")
+    ActivityRefList!ActivityObjectImpl attachment;
+
+    @serializationKeys("attributedTo")
+    ActivityRefList!ActivityObjectImpl attributedTo;
+
+    @serializationKeys("context")
+    ActivityRefList!ActivityObjectImpl context;
+
+    @serializationKeys("generator")
+    ActivityRefList!ActivityObjectImpl generator;
+
+    /// TODO: implement activity image and use here instead.
+    @serializationKeys("icon")
+    ActivityRefList!ActivityObjectImpl icon;
+
+    /// TODO: implement activity image and use here instead.
+    @serializationKeys("image")
+    ActivityRefList!ActivityObjectImpl image;
+
+    @serializationKeys("endTime")
+    string endTime;
+
+    @serializationKeys("startTime")
+    string startTime;
+
+    @serializationKeys("published")
+    string published;
+
 }
 
 /++
