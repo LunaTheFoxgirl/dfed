@@ -191,7 +191,7 @@ public:
     @serializationKeys("first")
     string first;
 
-    static if (CType != typeof(Ignored)) {
+    static if (is(CType : Ignored)) {
 
         /// In a paged Collection, indicates the page that contains the most recently updated member items.
         @serializationKeys("current")
@@ -244,7 +244,6 @@ mixin template ActivityObject(string acceptedObjectType = "Object", string itemN
     @serializationKeys("@context")
     ActivityContextList context;
 
-
     /// type
     @serializationRequired
     @serializationKeys("type")
@@ -257,4 +256,68 @@ mixin template ActivityObject(string acceptedObjectType = "Object", string itemN
     /// name
     @serializationKeys("name")
     string name;
+}
+
+/++
+ 	A Link is an indirect, qualified reference to a resource identified by a URL. 
+    The fundamental model for links is established by [RFC5988]. 
+    Many of the properties defined by the Activity Vocabulary allow values that are either instances of Object or Link. 
+    When a Link is used, it establishes a qualified relation connecting the subject (the containing object) to the resource identified by the href. 
+    Properties of the Link are properties of the reference as opposed to properties of the resource. 
++/
+struct ActivityLink(PreviewType = Ignored) {
+public:
+    this(string href) {
+        this.href = href;
+    }
+
+    /// Wether this link is reference (default false, should always be)
+    @serializationIgnore
+    bool isReference = false;
+
+    @serializationIgnore
+    string getReference () {
+        return href;
+    }
+    
+    /// Special context object.
+    @serializationRequired
+    @serializationKeys("@context")
+    ActivityContextList context;
+
+    /// type
+    @serializationRequired
+    @serializationKeys("type")
+    string type;
+
+    /// href
+    @serializationRequired
+    @serializationKeys("href")
+    string href;
+
+    /// hreflang
+    @serializationKeys("hreflang")
+    string hreflang;
+
+    /// mediaType
+    @serializationKeys("mediaType")
+    string mediaType;
+
+    /// name
+    @serializationKeys("name")
+    string name;
+
+    /// width
+    @serializationKeys("width")
+    int width;
+
+    /// height
+    @serializationKeys("height")
+    int height;
+
+    static if (!is(PreviewType : Ignored)) {
+        /// Identifies an entity that provides a preview of this object. 
+        @serializationKeys("preview")
+        PreviewType preview;
+    }
 }
