@@ -1,378 +1,164 @@
 module backend.data.activitystreams;
 import asdf;
-import backend.data.ld;
 import std.traits;
-import std.format;
 
-public:
-/// Language key for @context
-struct ActivityLang {
-    @serializationKeys("@language")
-    string language;
-}
-
-private string genRefInstantiate() {
-    static if (is(typeof(this) == struct)) {
-        return q{list ~= T(r);};
-    } else {
-        return q{list ~= new T(r);};
-    }
-}
-
-private string genRefReturn() {
-    static if (is(typeof(this) == struct))  {
-        return q{return T(r);};
-    } else {
-        return q{return new T(r);};
-    }
-}
-
-// Check that the type has a compatible constructor.
-// Also make sure we can check wether it was read as reference.
-// Also make sure getReference exists so that we can get the value when serializing.
-enum IsValidActivityRef(T) = ((isCallable!(T, string) || isCallable!(T.ctor, string)) && __traits(hasMember, T, "isReference") && __traits(hasMember, T, "getReference"));
-
-/// A list of activity references.
-struct ActivityRefList(T) if (IsValidActivityRef!T) {
-public:
-    /// The list of items.
-    T[] list;
-
-    static ActivityRefList deserialize(Asdf data) {
-        if (data.kind == Asdf.Kind.array) {
-            auto range = data.byElement();
-            while(!range.empty) {
-                list ~= T.deserialize(range);
-
-                // pop for next value
-                range.popFront;
-            }
-        } else {
-            list ~= T.deserialize(data);
-        }
-        return ctx;
-    }
-
-    /// serialize activity context properly.
-    void serialize(S)(ref S serializer) {
-        // start making an array
-        auto state = serializer.arrayBegin;
-
-        foreach(var; list) {
-
-            // Add index.
-            serializer.elemBegin;
-            var.serialize();
-
-        }
-        // end the array.
-        serializer.arrayEnd(state);
-    }
-}
-
-/// A reference to an activitystreams item.
-mixin template ActivityRef() {
+public class BaseFactory {
 private:
-    alias ThisType = typeof(this);
+    Base[string] factories;
 
 public:
-    // Make sure that the type has a compatible constructor.
-    // Also make sure we can check wether it was read as reference.
-    // Also make sure getReference exists so that we can get the value when serializing.
-    static if (IsValidActivityRef!T) {
-        
-        /// Deserialize activity context properly.
-        static ThisType deserialize(Asdf data) {
-            if (data.kind == Asdf.Kind.string) {
-                string r;
+    void addFactory(string name, Base type) {
+        factories[name] = type;
+    }
 
-                // Just a good old string.
-                deserializeScopedString(data, r);
+    Base doInit(string name) {
+        return factories[name].newThis();
+    }
 
-                // Generate the instantiator for string/reference
-                mixin(genRefReturn);
-            } else {
-                // Object representation
-                T o;
-                deserializeValue(data, o);
-
-                // Add reference to list
-                list ~= o;
-
-            }
-            return ctx;
-        }
-
-        /// serialize activity context properly.
-        void serialize(S)(ref S serializer) {
-            if (isReference) {
-                serializer.serializeValue(getReference);
-            } else {
-                serializer.serializeValue(this);
-            }
-        }
-    } else {
-        static assert("Failed implementing the interface, make sure there's a constructor accepting a string and isReference (bool) is implemented.");
+    Base doInit(string name, string refUrl) {
+        return factories[name].newThis(refUrl);
     }
 }
 
-/// @context implementation that supports language key.
-struct ActivityContextList {
+public class Base {
+protected:
+    /// URL being referenced
+    string refUrl;
 public:
-    /// @context
-    string context;
-    
-    /// @language (object)
-    ActivityLang language;
 
-    /// Deserialize activity context properly.
-    static ActivityContextList deserialize(Asdf data) {
-        ActivityContextList ctx;
-        if (data.kind == Asdf.Kind.array) {
-            auto range = data.byElement();
-            // @context
-            ctx.context = cast(string)range.front;
+    // new empty instance, does nothing fill in data.
+    this() {
 
-            // pop for next value
-            range.popFront;
-
-            // @language (object)
-            deserializeValue(range.front, ctx.language);
-
-        } else if (data.kind == Asdf.Kind.string) {
-            // Just a good old string.
-            deserializeScopedString(data, ctx.context);
-        }
-        return ctx;
     }
 
-    /// serialize activity context properly.
+    // new instance, has reference URL.
+    this(string refurl) {
+        this.refUrl = refurl;
+    }
+
+    abstract Base newThis();
+    abstract Base newThis(string refUrl);
+
+    void deserializeFrom(Asdf data) {
+        if (!"type".doesExist(data)) throw new Exception("Type no specified");
+        type = data["type"].get("");
+    }
+    abstract void serializeSelf(S)(ref S serializer);
+
+    static Base deserialize(Asdf data) {
+        Base baseType = cast(Base)FACTORIES.doInit(data["type"].get(""));
+        baseType.deserializeFrom(data);
+        return baseType;
+    }
+
     void serialize(S)(ref S serializer) {
-        // start making an array
-        auto state = serializer.arrayBegin;
-
-        // Add @context
-        serializer.elemBegin;
-        serializer.serializeValue(context);
-
-        // Add @language (object)
-        serializer.elemBegin;
-        serializer.serializeValue(language);
-
-        // end the array.
-        serializer.arrayEnd(state);
+        serializeSelf!S(serializer);
     }
-}
-
-/// An activity collection
-struct ActivityCollection(T, CType = Ignored, bool strictOrdering = false) {
-public:
-    mixin ActivityObject!("Collection");
-
-    // TODO: implement strictOrdering
-
-    /++ 
-        A non-negative integer specifying the total number of objects contained by the logical view of the collection. 
-        This number might not reflect the actual number of items serialized within the Collection object instance. 
-    +/
-    @serializationRequired
-    @serializationKeys("totalItems")
-    int totalItems() {
-        return items.list.length;
-    }
-
-
-    /// Identifies the items contained in a collection. The items might be ordered or unordered.
-    @serializationRequired
-    @serializationKeys("items")
-    ActivityRefList!T items;
-
-    /// In a paged Collection, indicates the furthest preceeding page of items in the collection.
-    @serializationKeys("first")
-    string first;
-
-    static if (is(CType : Ignored)) {
-
-        /// In a paged Collection, indicates the page that contains the most recently updated member items.
-        @serializationKeys("current")
-        ActivityRef!T current;
-    } else {
-
-        // This version only accepts strings for current definition.
-
-        /// In a paged Collection, indicates the page that contains the most recently updated member items.
-        @serializationKeys("current")
-        string current;
-    }
-
-    /// In a paged Collection, indicates the furthest proceeding page of the collection.
-    @serializationKeys("last")
-    string last;
-}
-
-/// TODO: implement the ordered collection implementation (inside ActivityCollection)
-alias ActivityOrderedCollection(T, CType = Ignored) = ActivityCollection!(T, Ignored, true);
-
-mixin template ActivityObject(string acceptedObjectType = "Object", string itemName = "id") {
-    /// The valid type for this activity streams object.
-    enum ValidType = acceptedObjectType;
-
-    /// Get wether this object is a valid instance.
-    @serializationIgnore
-    bool isValidObject() {
-        if (type == ValidType) {
-            return true;
-        }
-        return false;
-    }
-
-    @serializationIgnore
-    bool isReference;
-
-    @serializationIgnore
-    string getReference () {
-        // import std.format here since it's a mixin.
-        import std.format : format;
-        return mixin(q{%s}.format(itemName));
-    }
-
-
-    // Subtype the struct to the activity object.
-    @serializationFlexible
-    ActivityObjectImpl object;
-    alias object this;
-}
-
-/// An basic ActivityStreams object.
-struct ActivityObjectImpl {
-    mixin LDObject!Ignored;
-    /// Special context object.
-    @serializationRequired
-    @serializationKeys("@context")
-    ActivityContextList context;
 
     /// type
     @serializationRequired
     @serializationKeys("type")
     string type;
-
-    /// id
-    @serializationKeys("id")
-    string id;
-
-    /// name
-    @serializationKeys("name")
-    string name;
-
-    /// name map
-    @serializationKeys("nameMap")
-    string[string] nameMap;
-
-    /// content
-    @serializationKeys("content")
-    string content;
-    
-    /// content map
-    @serializationKeys("contentMap")
-    string[string] contentMap;
-
-    @serializationKeys("audience")
-    ActivityObjectImpl audience;
-
-    @serializationKeys("context")
-    ActivityObjectImpl context;
-
-    @serializationKeys("attachment")
-    ActivityRefList!ActivityObjectImpl attachment;
-
-    @serializationKeys("attributedTo")
-    ActivityRefList!ActivityObjectImpl attributedTo;
-
-    @serializationKeys("context")
-    ActivityRefList!ActivityObjectImpl context;
-
-    @serializationKeys("generator")
-    ActivityRefList!ActivityObjectImpl generator;
-
-    /// TODO: implement activity image and use here instead.
-    @serializationKeys("icon")
-    ActivityRefList!ActivityObjectImpl icon;
-
-    /// TODO: implement activity image and use here instead.
-    @serializationKeys("image")
-    ActivityRefList!ActivityObjectImpl image;
-
-    @serializationKeys("endTime")
-    string endTime;
-
-    @serializationKeys("startTime")
-    string startTime;
-
-    @serializationKeys("published")
-    string published;
-
 }
 
-/++
- 	A Link is an indirect, qualified reference to a resource identified by a URL. 
-    The fundamental model for links is established by [RFC5988]. 
-    Many of the properties defined by the Activity Vocabulary allow values that are either instances of Object or Link. 
-    When a Link is used, it establishes a qualified relation connecting the subject (the containing object) to the resource identified by the href. 
-    Properties of the Link are properties of the reference as opposed to properties of the resource. 
-+/
-struct ActivityLink(PreviewType = Ignored) {
+/// tests wether an index exists in the json data.
+bool doesExist(string index, Asdf data) {
+    import std.array : split;
+    string[] strs = index.split(".");
+    Asdf sub;
+    foreach(idex; strs) {
+        sub = data[idex];
+        if (sub.kind == Asdf.Kind.null_) return false;
+    }
+    return true;
+}
+
+public class Link : Base {
 public:
-    this(string href) {
-        this.href = href;
-    }
-
-    /// Wether this link is reference (default false, should always be)
-    @serializationIgnore
-    bool isReference = false;
-
-    @serializationIgnore
-    string getReference () {
-        return href;
-    }
-    
-    /// Special context object.
-    @serializationRequired
-    @serializationKeys("@context")
-    ActivityContextList context;
-
-    /// type
-    @serializationRequired
-    @serializationKeys("type")
-    string type;
-
     /// href
-    @serializationRequired
-    @serializationKeys("href")
     string href;
 
     /// hreflang
-    @serializationKeys("hreflang")
     string hreflang;
 
     /// mediaType
-    @serializationKeys("mediaType")
     string mediaType;
 
     /// name
-    @serializationKeys("name")
     string name;
 
     /// width
-    @serializationKeys("width")
     int width;
 
     /// height
-    @serializationKeys("height")
     int height;
 
-    static if (!is(PreviewType : Ignored)) {
-        /// Identifies an entity that provides a preview of this object. 
-        @serializationKeys("preview")
-        PreviewType preview;
+    /// height
+    Base preview;
+
+    this() {
+        super();
     }
+
+    this(string refUrl) {
+        super(refUrl);
+    }
+
+    override Base newThis() {
+        return new Link();
+    }
+
+    override Base newThis(string refUrl) {
+        return new Link(refUrl);
+    }
+
+    override void deserializeFrom(Asdf data) {
+        if ("href".doesExist(data))
+            href = data["href"].get("");
+
+        if ("hreflang".doesExist(data))
+            hreflang = data["hreflang"].get("");
+
+        if ("mediaType".doesExist(data))
+            mediaType = data["mediaType"].get("");
+
+        if ("name".doesExist(data))
+            name = data["name"].get("");
+
+        if ("width".doesExist(data))
+            width = data["width"].get(0);
+
+        if ("height".doesExist(data))
+            height = data["height"].get(0);
+
+        // Will fail if either preview doesn't exist or if type is not specified.
+        if ("preview.type".doesExist(data)) {
+            preview = FACTORIES.doInit(data["preview"]["type"].get(""));
+            preview.deserializeFrom(data);
+        }
+    }
+
+    override void serializeSelf(S)(ref S serializer) {
+        
+    }
+}
+
+/// ActivityStreams object, Object is reserved in D.
+public class AObject : Base {
+
+}
+
+
+public class Image : Object {
+
+}
+
+public class Collection : Object {
+
+}
+
+__gshared BaseFactory FACTORIES;
+
+shared static this() {
+    FACTORIES = new BaseFactory();
 }

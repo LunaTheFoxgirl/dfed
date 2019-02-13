@@ -2,7 +2,7 @@ module backend.data.activitypub;
 import backend.data.activitystreams;
 import backend.data.ld;
 import asdf;
-
+/*
 struct ActivityStatus {
 
     mixin LDObject;
@@ -93,4 +93,4 @@ unittest {
 }`;
     ActivityStatus ctx = deserializeLDFrom!ActivityStatus(testData);
     writeln(ctx);
-}
+}*/
