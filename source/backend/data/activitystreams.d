@@ -113,6 +113,8 @@ public:
     }
 
     override void deserializeFrom(Asdf data) {
+        super.deserializeFrom(data);
+
         if ("href".doesExist(data))
             href = data["href"].get("");
 
