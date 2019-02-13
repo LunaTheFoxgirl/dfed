@@ -39,18 +39,28 @@ public:
     abstract Base newThis();
     abstract Base newThis(string refUrl);
 
+    /// Called when serializing, override this.
+    abstract void serializeSelf(S)(ref S serializer);
+
+    /// Called when deserializing, override this.
     void deserializeFrom(Asdf data) {
         if (!"type".doesExist(data)) throw new Exception("Type no specified");
         type = data["type"].get("");
-    }
-    abstract void serializeSelf(S)(ref S serializer);
 
+        // TODO: parse context as a special thing?
+        if ("@context".doesExist(data))
+            context = data["@context"].get("");
+    }
+
+
+    /// Asdf impl
     static Base deserialize(Asdf data) {
         Base baseType = cast(Base)FACTORIES.doInit(data["type"].get(""));
         baseType.deserializeFrom(data);
         return baseType;
     }
 
+    /// Asdf impl
     void serialize(S)(ref S serializer) {
         serializeSelf!S(serializer);
     }
@@ -59,6 +69,11 @@ public:
     @serializationRequired
     @serializationKeys("type")
     string type;
+
+    /// @context
+    @serializationRequired
+    @serializationKeys("@context")
+    string context;
 }
 
 /// tests wether an index exists in the json data.
