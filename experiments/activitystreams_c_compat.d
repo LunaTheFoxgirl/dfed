@@ -2,7 +2,7 @@
     This was more an experiment to see how easy it'd be to implement as structures.
     I've decided to move this to the side and potentially mess more around with it if i decide to make the server extendible via C.
 */
-module backend.data.activitystreams_c_compat;
+module experiments.activitystreams_c_compat;
 import asdf;
 import backend.data.ld;
 import std.traits;
@@ -255,10 +255,6 @@ struct ActivityObjectImpl {
     @serializationKeys("@context")
     ActivityContextList context;
 
-    /// type
-    @serializationRequired
-    @serializationKeys("type")
-    string type;
 
     /// id
     @serializationKeys("id")

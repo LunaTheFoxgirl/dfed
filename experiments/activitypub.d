@@ -1,4 +1,4 @@
-module backend.data.activitypub;
+module experiments.activitypub;
 import backend.data.activitystreams;
 import backend.data.ld;
 import asdf;

@@ -1,7 +1,7 @@
 module backend.data.activitystreams;
 import asdf;
 import std.traits;
-
+/+
 public class BaseFactory {
 private:
     Base[string] factories;
@@ -40,7 +40,12 @@ public:
     abstract Base newThis(string refUrl);
 
     /// Called when serializing, override this.
-    abstract void serializeSelf(S)(ref S serializer);
+    /*void serializeSelf(ref AsdfSerializer serializer) {
+        serializer.putKey("@context");
+        serializer.putValue(context);
+        serializer.putKey("type");
+        serializer.putValue(type);
+    }
 
     /// Called when deserializing, override this.
     void deserializeFrom(Asdf data) {
@@ -61,9 +66,9 @@ public:
     }
 
     /// Asdf impl
-    void serialize(S)(ref S serializer) {
-        serializeSelf!S(serializer);
-    }
+    void serialize(ref AsdfSerializer serializer) {
+        serializeSelf(serializer);
+    }*/
 
     /// type
     @serializationRequired
@@ -83,6 +88,7 @@ bool doesExist(string index, Asdf data) {
     Asdf sub;
     foreach(idex; strs) {
         sub = data[idex];
+        if (sub.data.length <= 0) return false;
         if (sub.kind == Asdf.Kind.null_) return false;
     }
     return true;
@@ -100,7 +106,13 @@ public:
     string mediaType;
 
     /// name
-    string name;
+    string[] names;
+
+    /// name
+    string[string] nameMap;
+
+    /// rels
+    string[] rels;
 
     /// width
     int width;
@@ -127,7 +139,7 @@ public:
         return new Link(refUrl);
     }
 
-    override void deserializeFrom(Asdf data) {
+    /*override void deserializeFrom(Asdf data) {
         super.deserializeFrom(data);
 
         if ("href".doesExist(data))
@@ -140,7 +152,13 @@ public:
             mediaType = data["mediaType"].get("");
 
         if ("name".doesExist(data))
-            name = data["name"].get("");
+            names ~= data["name"].get("");
+
+        if ("nameMap".doesExist(data))
+            names ~= data["nameMap"].get!(string[string])([]);
+
+        if ("rel".doesExist(data))
+            rels ~= data["rel"].get("");
 
         if ("width".doesExist(data))
             width = data["width"].get(0);
@@ -155,9 +173,24 @@ public:
         }
     }
 
-    override void serializeSelf(S)(ref S serializer) {
-        
-    }
+    override void serializeSelf(ref AsdfSerializer serializer) {
+        super.serializeSelf(serializer);
+
+    }*/
+}
+
+unittest {
+    string json = `
+{
+  "@context": "https://www.w3.org/ns/activitystreams",
+  "type": "Link",
+  "href": "http://example.org/abc",
+  "hreflang": "en",
+  "mediaType": "text/html",
+  "name": "An example link"
+}`;
+    assert(json.deserialize!Base);
+
 }
 
 /// ActivityStreams object, Object is reserved in D.
@@ -178,4 +211,5 @@ __gshared BaseFactory FACTORIES;
 
 shared static this() {
     FACTORIES = new BaseFactory();
-}
+    FACTORIES.addFactory("Link", new Link);
+}+/

@@ -1,0 +1,5 @@
+Here's some experimental stuff that has been discarded for further consideration
+
+Mostly stuff like C friendly implementations and other ways of handing activitystreams weird format.
+
+Mostly unsucessful as it doesn't map that well to a strongly typed language.

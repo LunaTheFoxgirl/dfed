@@ -1,7 +1,7 @@
 module backend.data.ld;
 import asdf;
 import std.traits;
-
+/*
 /// Specify that an LD type/instance/member should be ignored or use stripped down functionality.
 struct Ignored;
 
@@ -10,7 +10,7 @@ enum IsLDObject(T) = (
     __traits(hasMember, T, "context"));
 
 /// Deserialize LD-JSON data from string
-T deserializeLDFrom(T)(string ldjson) if (IsLDRootObject!T || IsLDObject!T) {
+T deserializeLDFrom(T)(string ldjson) if (IsLDObject!T) {
     return ldjson.deserialize!T;
 }
 
@@ -93,4 +93,4 @@ unittest {
 }`;
     ldActionObject root = deserializeLDFrom!ldActionObject(testData);
     assert(root.serializeLDJson == compData, "Data does not match!");
-}
+}*/
