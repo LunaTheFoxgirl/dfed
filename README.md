@@ -1,2 +1,2 @@
 # dfed
-Experimental fediverse server in D (w/ vibe.d)
+Experimental fediverse server aimed at creatives written in D (w/ vibe.d)
