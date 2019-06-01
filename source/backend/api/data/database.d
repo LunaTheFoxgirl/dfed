@@ -22,6 +22,18 @@ private:
     Database rdb;
     string dbpath;
 
+    string verifyRDNN(T)(string RDNN) {
+        // Make sure there's a reverse domain name to manage.
+        if (RDNN is null) {
+            static if (!hasUDA!(T, dbPath)) {
+                assert(0, "No RDNN was specified and no dbPath specified for "~T.stringof~"!");
+            } else {
+                return getUDAs!(T, dbPath)[0].path;
+            }
+        }
+        return RDNN;
+    }
+
 public:
 
     this(string file) {
@@ -47,61 +59,67 @@ public:
         Saves the database instance
     +/
     void save(T)(T data, string RDNN = null) {
-        /// Make sure there's a reverse domain name to manage.
-        if (RDNN is null) {
-            static if (!hasUDA!(T, dbPath)) {
-                static assert(0, "No RDNN was specified and no dbPath specified for type!");
-            }
-            RDNN = getUDAs!(T, dbPath)[0].path;
-        }
 
-        static if (is(item == class) || is (item == struct)) {
+        // If the type is a class or struct, serialize every sub type of the class/struct
+        static if (is(T == class) || is (T == struct)) {
+
+            // Make sure there's a reverse domain name to manage.
+            RDNN = verifyRDNN!T(RDNN);
+
+            /// Iterate over every type that isn't marked as ignored in the class/struct and serialize those.
+            /// This is done at compiletime for maximum efficiency.
             alias fieldTypes = Fields!T;
             alias fieldNames = FieldNameTuple!T;
             static foreach(i, _; fieldTypes) {
-                static if (!hasUDA!(item, dbIgnore)) {
-                    this.save!(item)(RDNN~"."~fieldNames[i], __traits(getMember, data, fieldNames[i]));
+                static if (!hasUDA!(__traits(getMember, data, fieldNames[i]), dbIgnore)) {
+                    this.save!(fieldTypes[i])(__traits(getMember, data, fieldNames[i]), RDNN~"."~fieldNames[i]);
                 }
             }
         } else {
+            assert(RDNN, "RDNN was empty, basic types does not support dbPath!");
+
+            /// Otherwise, do a simple json serialization.
             rdb.put(cast(ubyte[])(RDNN), cast(ubyte[])serializeToJson(data));
         }
     }
 
     T get(T)(string RDNN = null) {
-        /// Make sure there's a reverse domain name to manage.
-        if (RDNN is null) {
-            static if (!hasUDA!(T, dbPath)) {
-                static assert(0, "No RDNN was specified and no dbPath specified for type!");
-            }
-            RDNN = getUDAs!(T, dbPath)[0].path;
+        static if (is(T == class)) {
+            T output = new T();
+        } else {
+            T output = T.init;
         }
 
-        static if (is(item == class) || is (item == struct)) {
-            T output;
+        // If the type is a class or struct, serialize every sub type of the class/struct
+        static if (is(T == class) || is (T == struct)) {
+
+            // Make sure there's a reverse domain name to manage.
+            RDNN = verifyRDNN!T(RDNN);
+
+            /// Iterate over every type that isn't marked as ignored in the class/struct and deserialize those.
+            /// This is done at compiletime for maximum efficiency.
             alias fieldTypes = Fields!T;
             alias fieldNames = FieldNameTuple!T;
             static foreach(i, _; fieldTypes) {
-                static if (!hasUDA!(item, dbIgnore)) {
+                static if (!hasUDA!(__traits(getMember, output, fieldNames[i]), dbIgnore)) {
                     __traits(getMember, output, fieldNames[i]) = this.get!(fieldTypes[i])(RDNN~"."~fieldNames[i]);
                 }
             }
-            return output;
         } else {
-            return deserialize!(T)(cast(string)rdb.get(cast(ubyte[])RDNN));
+            assert(RDNN, "RDNN was empty, basic types does not support dbPath!");
+            output = deserialize!(T)(cast(string)rdb.get(cast(ubyte[])RDNN));
         }
+        return output;
     }
 
     void remove(T)(T data, string RDNN = null) {
-        /// Make sure there's a reverse domain name to manage.
-        if (RDNN is null) {
-            static if (!hasUDA!(T, dbPath)) {
-                static assert(0, "No RDNN was specified and no dbPath specified for type!");
-            }
-            RDNN = getUDAs!(T, dbPath)[0].path;
-        }
-
         static if (is(item == class) || is (item == struct)) {
+
+            // Make sure there's a reverse domain name to manage.
+            RDNN = verifyRDNN!T(RDNN);
+
+
+            // Iterate through all non-ignored members and remove them from the DB.
             alias fieldTypes = Fields!T;
             alias fieldNames = FieldNameTuple!T;
             static foreach(i, _; fieldTypes) {
@@ -110,6 +128,9 @@ public:
                 }
             }
         } else {
+            assert(RDNN, "RDNN was empty, basic types does not support dbPath!");
+
+            // Remove element from db via the RDNN
             rdb.remove(cast(ubyte[])(RDNN));
         }
     }
@@ -117,20 +138,6 @@ public:
 
 __gshared static DB DB_INSTANCE;
 
-@dbPath("hell._test")
-private struct _test {
-    int val1;
-    int val2;
-}
-
 shared static this() {
     DB_INSTANCE = DB("dfed");
-    _test t;
-    t.val1 = 42;
-    t.val2 = 34;
-    DB_INSTANCE.save(t);
-
-    import std.stdio : writeln;
-    _test t2 = DB_INSTANCE.get!_test;
-    writeln(t2);
 }
