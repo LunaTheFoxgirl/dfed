@@ -5,7 +5,8 @@
         "hostname": "localhost",
         "cookie_id": "instance_name_session",
         "server_name": "instance_name",
-        "log_dir": "."
+        "log_dir": ".",
+        "root_address": "http://localhost"
     },
     "settings": {
         "compat_mastodon": false,

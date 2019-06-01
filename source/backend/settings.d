@@ -19,6 +19,10 @@ final class ServerSettingsBackend {
     /// Host name
     @serializationKeys("hostname")
     string hostName;
+
+    @serializationKeys("root_address")
+    @serializationRequired
+    string rootAddress;
     
     /// Max time a request may take to execute. (in milliseconds)
     @serializationKeys("request_timeout")
@@ -47,6 +51,9 @@ final class ServerSettingsBackend {
     /// Where to store logs
     @serializationKeys("log_dir")
     string logDirectory = "access.log";
+
+    @serializationKeys("db_dir")
+    string databaseDirectory = "db/";
 }
 
 /// Settings for dfed functionality.

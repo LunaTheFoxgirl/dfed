@@ -15,4 +15,5 @@ dfed-test-*
 *.lst
 access.log
 dub.selections.json
-
+config.json
+db/
